@@ -57,23 +57,11 @@ import static org.opencv.imgproc.Imgproc.putText;
 import static org.opencv.imgproc.Imgproc.rectangle;
 
 public class MainActivity extends AppCompatActivity implements OnTouchListener, CvCameraViewListener2 {
-    long start = System.currentTimeMillis();
-    long end;//获取结束时间
-    long end2;//获取结束时间
-    void Outtime(){
-        try {
-            long diff = end - start;//转换为秒数
-            long diff2 = end2 - end;//转换为秒数
-            System.out.println("time spand : " + diff+"   @@@   "+diff2);
-        } catch (Exception e) {
-            System.out.println("Got an exception!");
-        }
-    }
     static {
         OpenCVLoader.initDebug();
     }
 
-    Module module = null, LOGOmodule = null;
+//    Module module = null, LOGOmodule = null;
 
     private CameraBridgeViewBase mOpenCvCameraView;
     private ArrayList<String> classes = new ArrayList<>();
@@ -82,16 +70,12 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
 //    String modelWeights = "/latest_plate.weights";
     float confThreshold = 0.5f;
     float nmsThreshold = 0.4f;
-    int inpWidth = 416;
-    int inpHeight = 416;
-    Mat frame,dst= new Mat();
-    Net net;
-    Bitmap bitmap_plate = null, bitmap_logo = null, bitmap_allcar;
-    TextView CRNNtextView, LOGOtextView;
+    Mat dst= new Mat();
     ImageView show;
     int recNu=1;
     ClassCRNN classCRNN=new ClassCRNN();
     ClassLOGO classLOGO=new ClassLOGO();
+    ClassYOLO classYOLO=new ClassYOLO();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -120,7 +104,7 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
         try {
             String s = MyUtils.assetFilePath(this, "YOLO_plate_2class_CPU.weights");
             String ss = MyUtils.assetFilePath(this, "yolov3_2.cfg");
-            net = Dnn.readNetFromDarknet(ss, s);
+            classYOLO.net = Dnn.readNetFromDarknet(ss, s);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -128,8 +112,9 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
         show = findViewById(R.id.image);
 //        show.setMaxHeight(show.getMaxWidth());
 
-        CRNNtextView = findViewById(R.id.text);
-        LOGOtextView = findViewById(R.id.logo);
+        classCRNN.textView = findViewById(R.id.text);
+        classLOGO.textView = findViewById(R.id.logo);
+
         readClasses(classes, classesFile);
         net.setPreferableBackend(Dnn.DNN_BACKEND_OPENCV);
         net.setPreferableTarget(Dnn.DNN_TARGET_CPU);
@@ -138,6 +123,8 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
 
 
 //        Arrays.sort(MyUtils.classes);
+
+        MyUtils.activity=this;
     }
 
     private void getAppDetailSettingIntent(Context mContext) {
@@ -152,28 +139,6 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
         }
         startActivity(localIntent);
     }
-    @SuppressLint("HandlerLeak")
-    private Handler showhandler = new Handler() {
-        @Override
-        public void handleMessage(Message msg) {
-            show.setImageBitmap((Bitmap) msg.obj);
-        }
-    };
-    @SuppressLint("HandlerLeak")
-    private Handler CRNNhandler = new Handler() {
-        @Override
-        public void handleMessage(Message msg) {
-            CRNNtextView.setText(msg.obj.toString());
-        }
-    };
-    @SuppressLint("HandlerLeak")
-    private Handler LOGOhandler = new Handler() {
-        @Override
-        public void handleMessage(Message msg) {
-            LOGOtextView.setText(msg.obj.toString());
-        }
-    };
-
     private void readClasses(ArrayList<String> classes, String file) {
         BufferedReader reader = null;
         try {
@@ -208,129 +173,22 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
     Bitmap bitmap_small;
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
-        frame = inputFrame.rgba();
-
-//        bitmap_small=Bitmap.createBitmap(frame.cols(), frame.rows(), Bitmap.Config.ARGB_8888);
-//        Utils.matToBitmap(frame, bitmap_small);
-
-        Imgproc.cvtColor(frame, dst, Imgproc.COLOR_BGR2RGB);
-
-//        Bitmap bitmap_allcar = Bitmap.createBitmap(dst.cols(), dst.rows(), Bitmap.Config.ARGB_8888);
-//        Utils.matToBitmap(dst, bitmap_allcar);
-//        Bitmap bitmap_t = MyUtils.scaleBitmap(bitmap_allcar, inpWidth, inpHeight);
-//        Mat inmat=new Mat();
-//
-//        Utils.bitmapToMat(bitmap_t,inmat);
-//                //        System.out.println("Mat blob:"+inmat.cols()+","+inmat.rows()+"Mat dst:"+dst.size());
-//
-//        Imgproc.cvtColor(inmat, dst, Imgproc.COLOR_BGR2RGB);
-        Mat blob = Dnn.blobFromImage(dst, 1 / 255.0, new Size(inpWidth, inpHeight), new Scalar(0, 0, 0), true, false);
-
-        net.setInput(blob);
-        List<Mat> outs = new ArrayList<>();
-//                        end = System.currentTimeMillis();
-        net.forward(outs, getOutputsNames(net));
-//                        end2 = System.currentTimeMillis();
-//        Outtime();
-//                        start = System.currentTimeMillis();
-        System.out.println("recNu_MainAAAAAAA="+recNu);
-        postprocess(dst, outs,recNu);
-        recNu++;
+        Imgproc.cvtColor(inputFrame.rgba(), dst, Imgproc.COLOR_BGR2RGB);
+        dst=classYOLO.Go(dst);
+//        recNu++;
 //        new ShowThread().start();
 
         return dst;
     }
 
 
-    void postprocess(Mat frame, List<Mat> outs, int nownu) {
-        List<Integer> classIds = new ArrayList<>();
-        List<Float> confidences = new ArrayList<>();
-        List<Rect> boxes = new ArrayList<>();
-        List<Float> objconf = new ArrayList<>();
-        for (int i = 0; i < outs.size(); ++i) {
-            for (int j = 0; j < outs.get(i).rows(); ++j) {
-                Mat scores = outs.get(i).row(j).colRange(5, outs.get(i).row(j).cols());
-                Core.MinMaxLocResult r = Core.minMaxLoc(scores);
-                if (r.maxVal > confThreshold) {
-                    Mat bb = outs.get(i).row(j).colRange(0, 5);
-                    float[] data = new float[1];
-                    bb.get(0, 0, data);
 
-                    int centerX = (int) (data[0] * frame.cols());
-
-                    bb.get(0, 1, data);
-
-                    int centerY = (int) (data[0] * frame.rows());
-
-                    bb.get(0, 2, data);
-
-                    int width = (int) (data[0] * frame.cols());
-
-                    bb.get(0, 3, data);
-
-                    int height = (int) (data[0] * frame.rows());
-
-                    int left = centerX - width / 2;
-                    int top = centerY - height / 2;
-
-                    bb.get(0, 4, data);
-                    objconf.add(data[0]);
-
-                    confidences.add((float) r.maxVal);
-                    classIds.add((int) r.maxLoc.x);
-                    boxes.add(new Rect(left, top, width, height));
-                }
+    private void showTextView(final TextView tv, final String toString) {
+        runOnUiThread(new Runnable() {
+            @Override public void run() {
+                tv.setText(toString);
             }
-        }
-        MatOfRect boxs = new MatOfRect();
-
-        boxs.fromList(boxes);
-        MatOfFloat confis = new MatOfFloat();
-        confis.fromList(objconf);
-        MatOfInt idxs = new MatOfInt();
-        Dnn.NMSBoxes(boxs, confis, confThreshold, nmsThreshold, idxs);
-        if (idxs.total() > 0) {
-            int[] indices = idxs.toArray();
-            for (int i = 0; i < indices.length; ++i) {
-                int idx = indices[i];
-                Rect box = boxes.get(idx);
-                int y = box.y - box.height * 4 < 0 ? 0 : box.y - box.height * 4;
-                if (0 == classIds.get(idx)) {
-                    Advanced_recognition(box,nownu);
-                    drawPred(-1, confidences.get(idx), box.x, y, box.x + box.width, box.y, frame);
-                }
-                drawPred(classIds.get(idx), confidences.get(idx), box.x, box.y, box.x + box.width, box.y + box.height, frame);
-            }
-        }
-
-    }
-    void Advanced_recognition (Rect box, int nownu){
-        int y = box.y - box.height * 4 < 0 ? 0 : box.y - box.height * 4;
-        try {
-            int w = dst.width(), h = dst.height();
-            bitmap_allcar = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
-            Utils.matToBitmap(dst, bitmap_allcar);
-//                        Imgcodecs.imwrite("/storage/sdcard/temp.jpg", frame);
-            bitmap_plate = Bitmap.createBitmap(bitmap_allcar, box.x, box.y, box.width, box.height);
-            bitmap_logo = Bitmap.createBitmap(bitmap_allcar, box.x, y, box.width, box.y - y);
-//                        doCRNN(bmp);
-            classCRNN.CRNNgo();
-            classLOGO.LOGOgo();
-//            if(CRNNrun==null||!CRNNrun.isAlive()){
-//                CRNNrun=new CRNNThread(nownu);
-//                CRNNrun.start();
-//            }
-//            if(LOGOrun==null||!LOGOrun.isAlive()){
-//                LOGOrun=new LOGOThread(nownu);
-//                LOGOrun.start();
-//            }
-
-//            new CRNNThread(nownu).start();
-//            new LOGOThread(nownu).start();
-
-        } catch (CvException e) {
-            Log.d("Exception", e.getMessage());
-        }
+        });
     }
 //    void CRNNgo(){
 //        final FloatBuffer floatBuffer = Tensor.allocateFloatBuffer(1 * 160 * 32);
@@ -378,62 +236,62 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
 //        }
 //    }
 
-    void LOGOgo(){
-        Bitmap bmp1 = MyUtils.scaleBitmap(bitmap_logo, 112, 112);
-        //            Utile.bitmapToFloatBuffer(bmp1,  112, 112,  floatBuffer, 0);
-        //            Utile.bitmapToFloatBuffer(bmp1,0,0,112,112,TensorImageUtils.TORCHVISION_NORM_MEAN_RGB,TensorImageUtils.TORCHVISION_NORM_STD_RGB,);
-        //            final Tensor inputTensor =  Tensor.fromBlob(floatBuffer, new long[]{1, 1, 112, 112});
-        final Tensor inputTensor = TensorImageUtils.bitmapToFloat32Tensor(bmp1,
-                TensorImageUtils.TORCHVISION_NORM_MEAN_RGB, TensorImageUtils.TORCHVISION_NORM_STD_RGB);
-        //            MyUtils.saveBitmap(Environment.getExternalStorageDirectory().getPath()+"logo",bmp1);
-        assert LOGOmodule != null;
-        Tensor outputTensor = LOGOmodule.forward(IValue.from(inputTensor)).toTensor();
-        final float[] scores = outputTensor.getDataAsFloatArray();
-        int[] maxx = MyUtils.numMax(scores, 94);
-        Message msg = new Message();
-        msg.obj = MyUtils.classes[maxx[0]];
-        LOGOhandler.sendMessage(msg);
-//        System.out.println("recNu_LOGOBBBBB="+nownu);
-    }
-    private class LOGOThread extends Thread {
-        private int nownu;
-        public LOGOThread(int nownu)
-        {
-            this.nownu = nownu;
-        }
-        @Override
-        public void run() {
-            try{
-//              final FloatBuffer floatBuffer = Tensor.allocateFloatBuffer(1 * 112 * 112);
-                Bitmap bmp1 = MyUtils.scaleBitmap(bitmap_logo, 112, 112);
-    //            Utile.bitmapToFloatBuffer(bmp1,  112, 112,  floatBuffer, 0);
-    //            Utile.bitmapToFloatBuffer(bmp1,0,0,112,112,TensorImageUtils.TORCHVISION_NORM_MEAN_RGB,TensorImageUtils.TORCHVISION_NORM_STD_RGB,);
-    //            final Tensor inputTensor =  Tensor.fromBlob(floatBuffer, new long[]{1, 1, 112, 112});
-                final Tensor inputTensor = TensorImageUtils.bitmapToFloat32Tensor(bmp1,
-                        TensorImageUtils.TORCHVISION_NORM_MEAN_RGB, TensorImageUtils.TORCHVISION_NORM_STD_RGB);
-    //            MyUtils.saveBitmap(Environment.getExternalStorageDirectory().getPath()+"logo",bmp1);
-                assert LOGOmodule != null;
-                Tensor outputTensor = LOGOmodule.forward(IValue.from(inputTensor)).toTensor();
-                final float[] scores = outputTensor.getDataAsFloatArray();
-                int[] maxx = MyUtils.numMax(scores, 94);
-                Message msg = new Message();
-                msg.obj = MyUtils.classes[maxx[0]];
-                LOGOhandler.sendMessage(msg);
-                System.out.println("recNu_LOGOBBBBB="+nownu);
-            }catch (Exception e) {
-                System.out.println("thread is stop!");
-                e.printStackTrace();
-            }
-        }
-    }
-    private class ShowThread extends Thread {
-        @Override
-        public void run() {
-            Message msg = new Message();
-            msg.obj = bitmap_allcar;
-            showhandler.sendMessage(msg);
-        }
-    }
+//    void LOGOgo(){
+//        Bitmap bmp1 = MyUtils.scaleBitmap(bitmap_logo, 112, 112);
+//        //            Utile.bitmapToFloatBuffer(bmp1,  112, 112,  floatBuffer, 0);
+//        //            Utile.bitmapToFloatBuffer(bmp1,0,0,112,112,TensorImageUtils.TORCHVISION_NORM_MEAN_RGB,TensorImageUtils.TORCHVISION_NORM_STD_RGB,);
+//        //            final Tensor inputTensor =  Tensor.fromBlob(floatBuffer, new long[]{1, 1, 112, 112});
+//        final Tensor inputTensor = TensorImageUtils.bitmapToFloat32Tensor(bmp1,
+//                TensorImageUtils.TORCHVISION_NORM_MEAN_RGB, TensorImageUtils.TORCHVISION_NORM_STD_RGB);
+//        //            MyUtils.saveBitmap(Environment.getExternalStorageDirectory().getPath()+"logo",bmp1);
+//        assert LOGOmodule != null;
+//        Tensor outputTensor = LOGOmodule.forward(IValue.from(inputTensor)).toTensor();
+//        final float[] scores = outputTensor.getDataAsFloatArray();
+//        int[] maxx = MyUtils.numMax(scores, 94);
+//        Message msg = new Message();
+//        msg.obj = MyUtils.classes[maxx[0]];
+//        LOGOhandler.sendMessage(msg);
+////        System.out.println("recNu_LOGOBBBBB="+nownu);
+//    }
+//    private class LOGOThread extends Thread {
+//        private int nownu;
+//        public LOGOThread(int nownu)
+//        {
+//            this.nownu = nownu;
+//        }
+//        @Override
+//        public void run() {
+//            try{
+////              final FloatBuffer floatBuffer = Tensor.allocateFloatBuffer(1 * 112 * 112);
+//                Bitmap bmp1 = MyUtils.scaleBitmap(bitmap_logo, 112, 112);
+//    //            Utile.bitmapToFloatBuffer(bmp1,  112, 112,  floatBuffer, 0);
+//    //            Utile.bitmapToFloatBuffer(bmp1,0,0,112,112,TensorImageUtils.TORCHVISION_NORM_MEAN_RGB,TensorImageUtils.TORCHVISION_NORM_STD_RGB,);
+//    //            final Tensor inputTensor =  Tensor.fromBlob(floatBuffer, new long[]{1, 1, 112, 112});
+//                final Tensor inputTensor = TensorImageUtils.bitmapToFloat32Tensor(bmp1,
+//                        TensorImageUtils.TORCHVISION_NORM_MEAN_RGB, TensorImageUtils.TORCHVISION_NORM_STD_RGB);
+//    //            MyUtils.saveBitmap(Environment.getExternalStorageDirectory().getPath()+"logo",bmp1);
+//                assert LOGOmodule != null;
+//                Tensor outputTensor = LOGOmodule.forward(IValue.from(inputTensor)).toTensor();
+//                final float[] scores = outputTensor.getDataAsFloatArray();
+//                int[] maxx = MyUtils.numMax(scores, 94);
+//                Message msg = new Message();
+//                msg.obj = MyUtils.classes[maxx[0]];
+//                LOGOhandler.sendMessage(msg);
+//                System.out.println("recNu_LOGOBBBBB="+nownu);
+//            }catch (Exception e) {
+//                System.out.println("thread is stop!");
+//                e.printStackTrace();
+//            }
+//        }
+//    }
+//    private class ShowThread extends Thread {
+//        @Override
+//        public void run() {
+//            Message msg = new Message();
+//            msg.obj = bitmap_allcar;
+//            showhandler.sendMessage(msg);
+//        }
+//    }
 
     private void drawPred(int classId, float conf, int left, int top, int right, int bottom, Mat frame) {
         //Draw a rectangle displaying the bounding box
@@ -459,22 +317,6 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
         putText(frame, label, new Point(left, top), FONT_HERSHEY_SIMPLEX, 0.75, new Scalar(0, 0, 0), 1);
     }
 
-    List<String> getOutputsNames(Net net) {
-        ArrayList<String> names = new ArrayList<>();
-        if (names.size() == 0) {
-            //Get the indices of the output layers, i.e. the layers with unconnected outputs
-            List<Integer> outLayers = net.getUnconnectedOutLayers().toList();
-            //get the names of all the layers in the network
-            List<String> layersNames = net.getLayerNames();
-
-            // Get the names of the output layers in names
-            for (int i = 0; i < outLayers.size(); ++i) {
-                String layer = layersNames.get(outLayers.get(i).intValue() - 1);
-                names.add(layer);
-            }
-        }
-        return names;
-    }
 
     @Override
     public boolean onTouch(View v, MotionEvent event) {

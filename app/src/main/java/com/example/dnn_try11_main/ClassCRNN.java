@@ -12,7 +12,8 @@ import java.nio.FloatBuffer;
 public class ClassCRNN {
     Module module = null;
     Bitmap bitmap_plate;
-    String CRNNgo(){
+    TextView textView;
+    void CRNNgo(){
         final FloatBuffer floatBuffer = Tensor.allocateFloatBuffer(1 * 160 * 32);
         Bitmap bmp1 = MyUtils.scaleBitmap(bitmap_plate, 160, 32);
         MyUtils.bitmapToFloatBuffer(bmp1, 160, 32, floatBuffer, 0);
@@ -23,8 +24,7 @@ public class ClassCRNN {
         int[] maxx = MyUtils.numMax(scores, 6736);
         final String ixs = jiema(maxx);
         String result = MyUtils.quChong(ixs);
-        return result;
-//        showTextView(textView,result);
+        MyUtils.showTextView(textView,result);
     }
     private String jiema(int[] ixs) {
         String out= "";

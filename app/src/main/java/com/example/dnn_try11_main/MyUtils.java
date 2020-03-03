@@ -1,9 +1,11 @@
 package com.example.dnn_try11_main;
 
+import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.os.Environment;
+import android.widget.TextView;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -21,6 +23,7 @@ public class MyUtils {
             "斯巴鲁", "斯柯达", "日产", "昌河", "本田", "标致", "欧宝", "比亚迪", "江淮", "江铃", "江铃驭胜", "沃尔沃", "海马", "海马郑州", "玛莎拉蒂", "现代",
             "福特", "福田", "福迪", "红旗", "纳智捷", "羊城汽车", "英伦汽车", "英菲尼迪", "荣威", "菲亚特", "讴歌", "起亚", "路虎", "金旅客车", "金杯", "金牛",
             "金龙客车", "铃木", "长城", "长安商用", "长安新", "长安旧", "陆风", "雪佛兰", "雪铁龙", "雷克萨斯", "雷诺", "马自达", "黄海"};
+    static Activity activity;
     public static String  quChong(String input)
     {
         String out="";
@@ -31,6 +34,13 @@ public class MyUtils {
             }
         }
         return out;
+    }
+    public static void showTextView(final TextView tv, final String toString) {
+        activity.runOnUiThread(new Runnable() {
+            @Override public void run() {
+                tv.setText(toString);
+            }
+        });
     }
     public static String assetFilePath(Context context, String assetName) throws IOException {
         File file = new File(context.getFilesDir(), assetName);
