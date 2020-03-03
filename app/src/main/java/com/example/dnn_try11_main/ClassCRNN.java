@@ -12,7 +12,7 @@ import java.nio.FloatBuffer;
 public class ClassCRNN {
     Module module = null;
     Bitmap bitmap_plate;
-    String CRNNgo(TextView textView){
+    String CRNNgo(){
         final FloatBuffer floatBuffer = Tensor.allocateFloatBuffer(1 * 160 * 32);
         Bitmap bmp1 = MyUtils.scaleBitmap(bitmap_plate, 160, 32);
         MyUtils.bitmapToFloatBuffer(bmp1, 160, 32, floatBuffer, 0);

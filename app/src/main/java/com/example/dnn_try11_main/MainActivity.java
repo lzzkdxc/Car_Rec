@@ -90,16 +90,15 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
     TextView CRNNtextView, LOGOtextView;
     ImageView show;
     int recNu=1;
+    ClassCRNN classCRNN=new ClassCRNN();
 
-    CRNNThread CRNNrun;
-    LOGOThread LOGOrun;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         try {
             String ss = MyUtils.assetFilePath(this, "demo_latest_plate_JIT_CPU.pt");
-            module = Module.load(ss);
+            classCRNN.module = Module.load(ss);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -315,7 +314,7 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
             bitmap_plate = Bitmap.createBitmap(bitmap_allcar, box.x, box.y, box.width, box.height);
             bitmap_logo = Bitmap.createBitmap(bitmap_allcar, box.x, y, box.width, box.y - y);
 //                        doCRNN(bmp);
-            CRNNgo();
+            classCRNN.CRNNgo();
             LOGOgo();
 //            if(CRNNrun==null||!CRNNrun.isAlive()){
 //                CRNNrun=new CRNNThread(nownu);
