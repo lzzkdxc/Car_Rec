@@ -10,6 +10,7 @@ import org.pytorch.Tensor;
 import org.pytorch.torchvision.TensorImageUtils;
 
 public class ClassLOGO {
+
     Module module = null;
     Bitmap bitmap_plate;
 
@@ -25,7 +26,7 @@ public class ClassLOGO {
         Tensor outputTensor = module.forward(IValue.from(inputTensor)).toTensor();
         final float[] scores = outputTensor.getDataAsFloatArray();
         int[] maxx = MyUtils.numMax(scores, 94);
-        return Logo_classes.classes[maxx[0]];
+        return MyUtils.classes[maxx[0]];
 //        System.out.println("recNu_LOGOBBBBB="+nownu);
     }
 }

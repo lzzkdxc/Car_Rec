@@ -21,9 +21,21 @@ public class ClassCRNN {
         Tensor outputTensor = module.forward(IValue.from(inputTensor)).toTensor();
         final float[] scores = outputTensor.getDataAsFloatArray();
         int[] maxx = MyUtils.numMax(scores, 6736);
-        final String ixs = MyUtils.jiema(maxx);
+        final String ixs = jiema(maxx);
         String result = MyUtils.quChong(ixs);
         return result;
 //        showTextView(textView,result);
+    }
+    private String jiema(int[] ixs) {
+        String out= "";
+        int x=0;
+        for(int i=0;i<ixs.length;i++){
+            x=ixs[i];
+            if(x==0){
+                x++;
+            }
+            out = out + MyUtils.alphabet.charAt(x-1);
+        }
+        return out;
     }
 }

@@ -91,7 +91,7 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
     ImageView show;
     int recNu=1;
     ClassCRNN classCRNN=new ClassCRNN();
-
+    ClassLOGO classLOGO=new ClassLOGO();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -104,7 +104,7 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
         }
         try {
             String ss = MyUtils.assetFilePath(this, "DenseNet_car_logo_JIT0221.pt");
-            LOGOmodule = Module.load(ss);
+            classLOGO.module = Module.load(ss);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -137,7 +137,7 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
 //        getAppDetailSettingIntent(this);
 
 
-        Arrays.sort(Logo_classes.classes);
+//        Arrays.sort(MyUtils.classes);
     }
 
     private void getAppDetailSettingIntent(Context mContext) {
@@ -315,7 +315,7 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
             bitmap_logo = Bitmap.createBitmap(bitmap_allcar, box.x, y, box.width, box.y - y);
 //                        doCRNN(bmp);
             classCRNN.CRNNgo();
-            LOGOgo();
+            classLOGO.LOGOgo();
 //            if(CRNNrun==null||!CRNNrun.isAlive()){
 //                CRNNrun=new CRNNThread(nownu);
 //                CRNNrun.start();
@@ -332,51 +332,51 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
             Log.d("Exception", e.getMessage());
         }
     }
-    void CRNNgo(){
-        final FloatBuffer floatBuffer = Tensor.allocateFloatBuffer(1 * 160 * 32);
-        Bitmap bmp1 = MyUtils.scaleBitmap(bitmap_plate, 160, 32);
-        MyUtils.bitmapToFloatBuffer(bmp1, 160, 32, floatBuffer, 0);
-        final Tensor inputTensor = Tensor.fromBlob(floatBuffer, new long[]{1, 1, 32, 160});
-        assert module != null;
-        Tensor outputTensor = module.forward(IValue.from(inputTensor)).toTensor();
-        final float[] scores = outputTensor.getDataAsFloatArray();
-        int[] maxx = MyUtils.numMax(scores, 6736);
-        final String ixs = MyUtils.jiema(maxx);
-        String result = MyUtils.quChong(ixs);
-        Message msg = new Message();
-        msg.obj = result;
-        CRNNhandler.sendMessage(msg);
-    }
-    private class CRNNThread extends Thread {
-        private int nownu;
-        public CRNNThread(int nownu)
-        {
-            this.nownu = nownu;
-        }
-        @Override
-        public void run() {
-            try{
-                final FloatBuffer floatBuffer = Tensor.allocateFloatBuffer(1 * 160 * 32);
-                Bitmap bmp1 = MyUtils.scaleBitmap(bitmap_plate, 160, 32);
-                MyUtils.bitmapToFloatBuffer(bmp1, 160, 32, floatBuffer, 0);
-                final Tensor inputTensor = Tensor.fromBlob(floatBuffer, new long[]{1, 1, 32, 160});
-                assert module != null;
-                Tensor outputTensor = module.forward(IValue.from(inputTensor)).toTensor();
-                final float[] scores = outputTensor.getDataAsFloatArray();
-                int[] maxx = MyUtils.numMax(scores, 6736);
-                final String ixs = MyUtils.jiema(maxx);
-                String result = MyUtils.quChong(ixs);
-                Message msg = new Message();
-                msg.obj = result;
-                CRNNhandler.sendMessage(msg);
-                System.out.println("recNu_CRNNCCC="+nownu);
-            }catch (Exception e) {
-                System.out.println("thread is stop!");
-                e.printStackTrace();
-            }
-
-        }
-    }
+//    void CRNNgo(){
+//        final FloatBuffer floatBuffer = Tensor.allocateFloatBuffer(1 * 160 * 32);
+//        Bitmap bmp1 = MyUtils.scaleBitmap(bitmap_plate, 160, 32);
+//        MyUtils.bitmapToFloatBuffer(bmp1, 160, 32, floatBuffer, 0);
+//        final Tensor inputTensor = Tensor.fromBlob(floatBuffer, new long[]{1, 1, 32, 160});
+//        assert module != null;
+//        Tensor outputTensor = module.forward(IValue.from(inputTensor)).toTensor();
+//        final float[] scores = outputTensor.getDataAsFloatArray();
+//        int[] maxx = MyUtils.numMax(scores, 6736);
+//        final String ixs = MyUtils.jiema(maxx);
+//        String result = MyUtils.quChong(ixs);
+//        Message msg = new Message();
+//        msg.obj = result;
+//        CRNNhandler.sendMessage(msg);
+//    }
+//    private class CRNNThread extends Thread {
+//        private int nownu;
+//        public CRNNThread(int nownu)
+//        {
+//            this.nownu = nownu;
+//        }
+//        @Override
+//        public void run() {
+//            try{
+//                final FloatBuffer floatBuffer = Tensor.allocateFloatBuffer(1 * 160 * 32);
+//                Bitmap bmp1 = MyUtils.scaleBitmap(bitmap_plate, 160, 32);
+//                MyUtils.bitmapToFloatBuffer(bmp1, 160, 32, floatBuffer, 0);
+//                final Tensor inputTensor = Tensor.fromBlob(floatBuffer, new long[]{1, 1, 32, 160});
+//                assert module != null;
+//                Tensor outputTensor = module.forward(IValue.from(inputTensor)).toTensor();
+//                final float[] scores = outputTensor.getDataAsFloatArray();
+//                int[] maxx = MyUtils.numMax(scores, 6736);
+//                final String ixs = MyUtils.jiema(maxx);
+//                String result = MyUtils.quChong(ixs);
+//                Message msg = new Message();
+//                msg.obj = result;
+//                CRNNhandler.sendMessage(msg);
+//                System.out.println("recNu_CRNNCCC="+nownu);
+//            }catch (Exception e) {
+//                System.out.println("thread is stop!");
+//                e.printStackTrace();
+//            }
+//
+//        }
+//    }
 
     void LOGOgo(){
         Bitmap bmp1 = MyUtils.scaleBitmap(bitmap_logo, 112, 112);
@@ -391,7 +391,7 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
         final float[] scores = outputTensor.getDataAsFloatArray();
         int[] maxx = MyUtils.numMax(scores, 94);
         Message msg = new Message();
-        msg.obj = Logo_classes.classes[maxx[0]];
+        msg.obj = MyUtils.classes[maxx[0]];
         LOGOhandler.sendMessage(msg);
 //        System.out.println("recNu_LOGOBBBBB="+nownu);
     }
@@ -417,7 +417,7 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
                 final float[] scores = outputTensor.getDataAsFloatArray();
                 int[] maxx = MyUtils.numMax(scores, 94);
                 Message msg = new Message();
-                msg.obj = Logo_classes.classes[maxx[0]];
+                msg.obj = MyUtils.classes[maxx[0]];
                 LOGOhandler.sendMessage(msg);
                 System.out.println("recNu_LOGOBBBBB="+nownu);
             }catch (Exception e) {
