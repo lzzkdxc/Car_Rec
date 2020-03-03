@@ -61,15 +61,16 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
         OpenCVLoader.initDebug();
     }
 
-//    Module module = null, LOGOmodule = null;
-
+    public MainActivity() {
+        mainActivity = this;
+    }
+    public static MainActivity getMainActivity() {
+        return mainActivity;
+    }
+    private static MainActivity mainActivity;
     private CameraBridgeViewBase mOpenCvCameraView;
-    private ArrayList<String> classes = new ArrayList<>();
-    String classesFile = "coco.names";
     //    String modelConfiguration = "/yolov3_1.cfg";
 //    String modelWeights = "/latest_plate.weights";
-    float confThreshold = 0.5f;
-    float nmsThreshold = 0.4f;
     Mat dst= new Mat();
     ImageView show;
     int recNu=1;
@@ -80,14 +81,16 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        MyUtils.activity=this;
+        MyUtils.context=this;
         try {
-            String ss = MyUtils.assetFilePath(this, "demo_latest_plate_JIT_CPU.pt");
+            String ss = MyUtils.assetFilePath("demo_latest_plate_JIT_CPU.pt");
             classCRNN.module = Module.load(ss);
         } catch (IOException e) {
             e.printStackTrace();
         }
         try {
-            String ss = MyUtils.assetFilePath(this, "DenseNet_car_logo_JIT0221.pt");
+            String ss = MyUtils.assetFilePath( "DenseNet_car_logo_JIT0221.pt");
             classLOGO.module = Module.load(ss);
         } catch (IOException e) {
             e.printStackTrace();
@@ -102,8 +105,8 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
 //        modelWeights = Environment.getExternalStorageDirectory().getPath() + modelWeights;
 
         try {
-            String s = MyUtils.assetFilePath(this, "YOLO_plate_2class_CPU.weights");
-            String ss = MyUtils.assetFilePath(this, "yolov3_2.cfg");
+            String s = MyUtils.assetFilePath( "YOLO_plate_2class_CPU.weights");
+            String ss = MyUtils.assetFilePath( "yolov3_2.cfg");
             classYOLO.net = Dnn.readNetFromDarknet(ss, s);
         } catch (IOException e) {
             e.printStackTrace();
@@ -115,16 +118,12 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
         classCRNN.textView = findViewById(R.id.text);
         classLOGO.textView = findViewById(R.id.logo);
 
-        readClasses(classes, classesFile);
-        net.setPreferableBackend(Dnn.DNN_BACKEND_OPENCV);
-        net.setPreferableTarget(Dnn.DNN_TARGET_CPU);
 
 //        getAppDetailSettingIntent(this);
 
 
 //        Arrays.sort(MyUtils.classes);
-
-        MyUtils.activity=this;
+        classYOLO.init();
     }
 
     private void getAppDetailSettingIntent(Context mContext) {
@@ -139,28 +138,7 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
         }
         startActivity(localIntent);
     }
-    private void readClasses(ArrayList<String> classes, String file) {
-        BufferedReader reader = null;
-        try {
-            reader = new BufferedReader(new InputStreamReader(getAssets().open(file)));
 
-            // do reading, usually loop until end of file reading
-            String mLine;
-            while ((mLine = reader.readLine()) != null) {
-                classes.add(mLine);
-            }
-        } catch (IOException e) {
-            //log the exception
-        } finally {
-            if (reader != null) {
-                try {
-                    reader.close();
-                } catch (IOException e) {
-                    //log the exception
-                }
-            }
-        }
-    }
 
     @Override
     protected void onDestroy() {
@@ -170,26 +148,41 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
         }
     }
 
-    Bitmap bitmap_small;
+//    Bitmap bitmap_small;
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
         Imgproc.cvtColor(inputFrame.rgba(), dst, Imgproc.COLOR_BGR2RGB);
         dst=classYOLO.Go(dst);
 //        recNu++;
 //        new ShowThread().start();
-
         return dst;
     }
 
 
+    void Advanced_recognition (Rect box){
+        int y = box.y - box.height * 4 < 0 ? 0 : box.y - box.height * 4;
+        try {
+            int w = dst.width(), h = dst.height();
+            Bitmap bitmap_allcar = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+            Utils.matToBitmap(dst, bitmap_allcar);
+//                        Imgcodecs.imwrite("/storage/sdcard/temp.jpg", frame);
+            classCRNN.bitmap_plate = Bitmap.createBitmap(bitmap_allcar, box.x, box.y, box.width, box.height);
+            classLOGO.bitmap_plate = Bitmap.createBitmap(bitmap_allcar, box.x, y, box.width, box.y - y);
+            classCRNN.CRNNgo();
+            classLOGO.LOGOgo();
 
-    private void showTextView(final TextView tv, final String toString) {
-        runOnUiThread(new Runnable() {
-            @Override public void run() {
-                tv.setText(toString);
-            }
-        });
+        } catch (CvException e) {
+            Log.d("Exception", e.getMessage());
+        }
     }
+
+//    private void showTextView(final TextView tv, final String toString) {
+//        runOnUiThread(new Runnable() {
+//            @Override public void run() {
+//                tv.setText(toString);
+//            }
+//        });
+//    }
 //    void CRNNgo(){
 //        final FloatBuffer floatBuffer = Tensor.allocateFloatBuffer(1 * 160 * 32);
 //        Bitmap bmp1 = MyUtils.scaleBitmap(bitmap_plate, 160, 32);
@@ -293,29 +286,7 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
 //        }
 //    }
 
-    private void drawPred(int classId, float conf, int left, int top, int right, int bottom, Mat frame) {
-        //Draw a rectangle displaying the bounding box
-        rectangle(frame, new Point(left, top), new Point(right, bottom), new Scalar(255, 178, 50), 3);
 
-        //Get the label for the class name and its confidence
-        String label = String.format("%.2f", conf);
-        if (classes.size() > 0) {
-            if(classId==-1){
-                label="";
-            }else{
-                label = classes.get(classId) + ":" + label;
-            }
-//            System.out.println(label);
-        }
-
-        //Display the label at the top of the bounding box
-        int[] baseLine = new int[1];
-        Size labelSize = Imgproc.getTextSize(label, FONT_HERSHEY_SIMPLEX, 0.5, 1, baseLine);
-        top = Math.max(top, (int) labelSize.height);
-        rectangle(frame, new Point(left, top - round(1.5 * labelSize.height)),
-                new Point(left + round(1.5 * labelSize.width), top + baseLine[0]), new Scalar(255, 255, 255), FILLED);
-        putText(frame, label, new Point(left, top), FONT_HERSHEY_SIMPLEX, 0.75, new Scalar(0, 0, 0), 1);
-    }
 
 
     @Override

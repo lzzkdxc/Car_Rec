@@ -10,21 +10,38 @@ import org.opencv.core.Mat;
 import org.opencv.core.MatOfFloat;
 import org.opencv.core.MatOfInt;
 import org.opencv.core.MatOfRect;
+import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.dnn.Dnn;
 import org.opencv.dnn.Net;
+import org.opencv.imgproc.Imgproc;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+
+import static java.lang.Math.round;
+import static org.opencv.core.Core.FILLED;
+import static org.opencv.core.Core.FONT_HERSHEY_SIMPLEX;
+import static org.opencv.imgproc.Imgproc.putText;
+import static org.opencv.imgproc.Imgproc.rectangle;
 
 public class ClassYOLO {
     Net net;
     int inpWidth = 416;
     int inpHeight = 416;
+    float confThreshold = 0.5f;
+    float nmsThreshold = 0.4f;
+    private ArrayList<String> classes = new ArrayList<>();
+    String classesFile = "coco.names";
     void init(){
-
+        readClasses(classes, classesFile);
+        net.setPreferableBackend(Dnn.DNN_BACKEND_OPENCV);
+        net.setPreferableTarget(Dnn.DNN_TARGET_CPU);
     }
     Mat Go(Mat dst){
 
@@ -41,7 +58,7 @@ public class ClassYOLO {
 
         return dst;
     }
-    void postprocess(Mat frame, List<Mat> outs, int nownu) {
+    void postprocess(Mat frame, List<Mat> outs) {
         List<Integer> classIds = new ArrayList<>();
         List<Float> confidences = new ArrayList<>();
         List<Rect> boxes = new ArrayList<>();
@@ -95,29 +112,13 @@ public class ClassYOLO {
                 Rect box = boxes.get(idx);
                 int y = box.y - box.height * 4 < 0 ? 0 : box.y - box.height * 4;
                 if (0 == classIds.get(idx)) {
-                    Advanced_recognition(box,nownu);
+                    MainActivity.getMainActivity().Advanced_recognition(box);
                     drawPred(-1, confidences.get(idx), box.x, y, box.x + box.width, box.y, frame);
                 }
                 drawPred(classIds.get(idx), confidences.get(idx), box.x, box.y, box.x + box.width, box.y + box.height, frame);
             }
         }
 
-    }
-    void Advanced_recognition (Rect box, int nownu){
-        int y = box.y - box.height * 4 < 0 ? 0 : box.y - box.height * 4;
-        try {
-            int w = dst.width(), h = dst.height();
-            Bitmap bitmap_allcar = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
-            Utils.matToBitmap(dst, bitmap_allcar);
-//                        Imgcodecs.imwrite("/storage/sdcard/temp.jpg", frame);
-            classCRNN.bitmap_plate = Bitmap.createBitmap(bitmap_allcar, box.x, box.y, box.width, box.height);
-            classLOGO.bitmap_plate = Bitmap.createBitmap(bitmap_allcar, box.x, y, box.width, box.y - y);
-            classCRNN.CRNNgo();
-            classLOGO.LOGOgo();
-
-        } catch (CvException e) {
-            Log.d("Exception", e.getMessage());
-        }
     }
 
     List<String> getOutputsNames(Net net) {
@@ -147,6 +148,51 @@ public class ClassYOLO {
             System.out.println("time spand : " + diff+"   @@@   "+diff2);
         } catch (Exception e) {
             System.out.println("Got an exception!");
+        }
+    }
+    private void drawPred(int classId, float conf, int left, int top, int right, int bottom, Mat frame) {
+        //Draw a rectangle displaying the bounding box
+        rectangle(frame, new Point(left, top), new Point(right, bottom), new Scalar(255, 178, 50), 3);
+
+        //Get the label for the class name and its confidence
+        String label = String.format("%.2f", conf);
+        if (classes.size() > 0) {
+            if(classId==-1){
+                label="";
+            }else{
+                label = classes.get(classId) + ":" + label;
+            }
+            System.out.println(label);
+        }
+
+        //Display the label at the top of the bounding box
+        int[] baseLine = new int[1];
+        Size labelSize = Imgproc.getTextSize(label, FONT_HERSHEY_SIMPLEX, 0.5, 1, baseLine);
+        top = Math.max(top, (int) labelSize.height);
+        rectangle(frame, new Point(left, top - round(1.5 * labelSize.height)),
+                new Point(left + round(1.5 * labelSize.width), top + baseLine[0]), new Scalar(255, 255, 255), FILLED);
+        putText(frame, label, new Point(left, top), FONT_HERSHEY_SIMPLEX, 0.75, new Scalar(0, 0, 0), 1);
+    }
+    private void readClasses(ArrayList<String> classes, String file) {
+        BufferedReader reader = null;
+        try {
+            reader = new BufferedReader(new InputStreamReader(MyUtils.context.getAssets().open(file)));
+
+            // do reading, usually loop until end of file reading
+            String mLine;
+            while ((mLine = reader.readLine()) != null) {
+                classes.add(mLine);
+            }
+        } catch (IOException e) {
+            //log the exception
+        } finally {
+            if (reader != null) {
+                try {
+                    reader.close();
+                } catch (IOException e) {
+                    //log the exception
+                }
+            }
         }
     }
 }
