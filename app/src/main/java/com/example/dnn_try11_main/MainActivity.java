@@ -1,9 +1,11 @@
 package com.example.dnn_try11_main;
 
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
@@ -48,7 +50,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 
 import static java.lang.Math.round;
 import static org.opencv.core.Core.FILLED;
@@ -125,17 +129,31 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
 //        Arrays.sort(MyUtils.classes);
         classYOLO.init();
     }
-
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    void Request() {
+        //获取相机拍摄读写权限
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            //版本判断
+            if (
+                    checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(
+                        this, new String[]{
+                                Manifest.permission.READ_EXTERNAL_STORAGE,Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA
+                        }, 1
+                );
+            }
+        }
+    }
     private void getAppDetailSettingIntent(Context mContext) {
         Intent localIntent = new Intent();
-        if (Build.VERSION.SDK_INT >= 9) {
+//        if (Build.VERSION.SDK_INT >= 9) {
             localIntent.setAction("android.settings.APPLICATION_DETAILS_SETTINGS");
             localIntent.setData(Uri.fromParts("package", mContext.getPackageName(), null));
-        } else if (Build.VERSION.SDK_INT <= 8) {
-            localIntent.setAction(Intent.ACTION_VIEW);
-            localIntent.setClassName("com.android.settings", "com.android.settings.InstalledAppDetails");
-            localIntent.putExtra("com.android.settings.ApplicationPkgName", mContext.getPackageName());
-        }
+//        } else if (Build.VERSION.SDK_INT <= 8) {
+//            localIntent.setAction(Intent.ACTION_VIEW);
+//            localIntent.setClassName("com.android.settings", "com.android.settings.InstalledAppDetails");
+//            localIntent.putExtra("com.android.settings.ApplicationPkgName", mContext.getPackageName());
+//        }
         startActivity(localIntent);
     }
 

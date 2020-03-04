@@ -30,12 +30,12 @@ import static org.opencv.core.Core.FONT_HERSHEY_SIMPLEX;
 import static org.opencv.imgproc.Imgproc.putText;
 import static org.opencv.imgproc.Imgproc.rectangle;
 
-public class ClassYOLO {
+class ClassYOLO {
     Net net;
-    int inpWidth = 416;
-    int inpHeight = 416;
-    float confThreshold = 0.5f;
-    float nmsThreshold = 0.4f;
+    private int inpWidth = 416;
+    private int inpHeight = 416;
+    private float confThreshold = 0.5f;
+    private float nmsThreshold = 0.4f;
     private ArrayList<String> classes = new ArrayList<>();
     String classesFile = "coco.names";
     void init(){
@@ -58,7 +58,7 @@ public class ClassYOLO {
 
         return dst;
     }
-    void postprocess(Mat frame, List<Mat> outs) {
+    private void postprocess(Mat frame, List<Mat> outs) {
         List<Integer> classIds = new ArrayList<>();
         List<Float> confidences = new ArrayList<>();
         List<Rect> boxes = new ArrayList<>();
@@ -107,8 +107,7 @@ public class ClassYOLO {
         Dnn.NMSBoxes(boxs, confis, confThreshold, nmsThreshold, idxs);
         if (idxs.total() > 0) {
             int[] indices = idxs.toArray();
-            for (int i = 0; i < indices.length; ++i) {
-                int idx = indices[i];
+            for (int idx : indices) {
                 Rect box = boxes.get(idx);
                 int y = box.y - box.height * 4 < 0 ? 0 : box.y - box.height * 4;
                 if (0 == classIds.get(idx)) {
@@ -121,7 +120,7 @@ public class ClassYOLO {
 
     }
 
-    List<String> getOutputsNames(Net net) {
+    private List<String> getOutputsNames(Net net) {
         ArrayList<String> names = new ArrayList<>();
         if (names.size() == 0) {
             //Get the indices of the output layers, i.e. the layers with unconnected outputs
@@ -138,10 +137,10 @@ public class ClassYOLO {
         return names;
     }
 
-    long start = System.currentTimeMillis();
-    long end;//获取结束时间
+    private long start = System.currentTimeMillis();
+    private long end;//获取结束时间
     long end2;//获取结束时间
-    void Outtime(){
+    private void Outtime(){
         try {
             long diff = end - start;//转换为秒数
             long diff2 = end2 - end;//转换为秒数
@@ -174,9 +173,7 @@ public class ClassYOLO {
         putText(frame, label, new Point(left, top), FONT_HERSHEY_SIMPLEX, 0.75, new Scalar(0, 0, 0), 1);
     }
     private void readClasses(ArrayList<String> classes, String file) {
-        BufferedReader reader = null;
-        try {
-            reader = new BufferedReader(new InputStreamReader(MyUtils.context.getAssets().open(file)));
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(MyUtils.context.getAssets().open(file)))) {
 
             // do reading, usually loop until end of file reading
             String mLine;
@@ -185,14 +182,7 @@ public class ClassYOLO {
             }
         } catch (IOException e) {
             //log the exception
-        } finally {
-            if (reader != null) {
-                try {
-                    reader.close();
-                } catch (IOException e) {
-                    //log the exception
-                }
-            }
         }
+        //log the exception
     }
 }
