@@ -76,7 +76,7 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
     //    String modelConfiguration = "/yolov3_1.cfg";
 //    String modelWeights = "/latest_plate.weights";
     Mat dst= new Mat();
-    ImageView show;
+//    ImageView show;
     int recNu=1;
     ClassCRNN classCRNN=new ClassCRNN();
     ClassLOGO classLOGO=new ClassLOGO();
@@ -95,7 +95,7 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
             e.printStackTrace();
         }
         try {
-            String ss = MyUtils.assetFilePath("Car_Type_JIT_CPU.pt");
+            String ss = MyUtils.assetFilePath("Car_Type_JIT_CPU0312.pt");
             classTYPE.module = Module.load(ss);
         } catch (IOException e) {
             e.printStackTrace();
@@ -123,12 +123,13 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
             e.printStackTrace();
         }
 
-        show = findViewById(R.id.image);
+//        show = findViewById(R.id.image);
 //        show.setMaxHeight(show.getMaxWidth());
 
         classCRNN.textView = findViewById(R.id.crnn);
         classLOGO.textView = findViewById(R.id.logo);
         classTYPE.textView = findViewById(R.id.type);
+        classTYPE.imageView = findViewById(R.id.image1);
 
 
 //        getAppDetailSettingIntent(this);
@@ -178,10 +179,17 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
         Imgproc.cvtColor(inputFrame.rgba(), dst, Imgproc.COLOR_BGR2RGB);
-        dst=classYOLO.Go(dst);
+
+        Bitmap bitmap_allcar = Bitmap.createBitmap(dst.cols(), dst.rows(), Bitmap.Config.ARGB_8888);
+        Utils.matToBitmap(dst, bitmap_allcar);
+        Bitmap bitmap_t = MyUtils.scaleBitmap(bitmap_allcar, dst.cols(), dst.rows());
+        Mat re=new Mat();
+        Utils.bitmapToMat(bitmap_t,re);
+
+        return classYOLO.Go(dst,re);
+
 //        recNu++;
 //        new ShowThread().start();
-        return dst;
     }
 
 
@@ -192,12 +200,14 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
             Bitmap bitmap_allcar = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
             Utils.matToBitmap(dst, bitmap_allcar);
 //                        Imgcodecs.imwrite("/storage/sdcard/temp.jpg", frame);
+
+            box.width=dst.width()-box.x<box.width?dst.width()-box.x:box.width;
+            box.height=dst.height()-box.y<box.height?dst.height()-box.y:box.height;
+
             classCRNN.bitmap_plate = Bitmap.createBitmap(bitmap_allcar, box.x, box.y, box.width, box.height);
             classLOGO.bitmap_plate = Bitmap.createBitmap(bitmap_allcar, box.x, y, box.width, box.y - y);
-            classTYPE.bitmap_plate = Bitmap.createBitmap(bitmap_allcar, box.x, box.y, box.width, box.height);
             classCRNN.CRNNgo();
             classLOGO.LOGOgo();
-            classTYPE.TYPEgo();
 
         } catch (CvException e) {
             Log.d("Exception", e.getMessage());
@@ -209,7 +219,15 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
             int w = dst.width(), h = dst.height();
             Bitmap bitmap_allcar = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
             Utils.matToBitmap(dst, bitmap_allcar);
+
+            box.width=dst.width()-box.x<box.width?dst.width()-box.x:box.width;
+            box.height=dst.height()-box.y<box.height?dst.height()-box.y:box.height;
+            box.y=box.y>=0?box.y:0;
+            box.x=box.x>=0?box.x:0;
+            box.width=box.width>0?box.width:1;
+            box.height=box.height>0?box.height:1;
             classTYPE.bitmap_plate = Bitmap.createBitmap(bitmap_allcar, box.x, box.y, box.width, box.height);
+
             classTYPE.TYPEgo();
 
         } catch (CvException e) {
@@ -343,4 +361,26 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
     public void onCameraViewStarted(int width, int height) {
 
     }
+//    @Override
+//    protected Size calculateCameraFrameSize(List<?> supportedSizes, CameraBridgeViewBase.ListItemAccessor accessor, int surfaceWidth, int surfaceHeight) {
+//        int calcWidth = 0;
+//        int calcHeight = 0;
+//
+//        int maxAllowedWidth = (mMaxWidth != MAX_UNSPECIFIED && mMaxWidth < surfaceWidth)? mMaxWidth : surfaceWidth;
+//        int maxAllowedHeight = (mMaxHeight != MAX_UNSPECIFIED && mMaxHeight < surfaceHeight)? mMaxHeight : surfaceHeight;
+//
+//        for (Object size : supportedSizes) {
+//            int width = accessor.getWidth(size);
+//            int height = accessor.getHeight(size);
+//
+//            if (width <= maxAllowedWidth && height <= maxAllowedHeight) {
+//                if (width >= calcWidth && height >= calcHeight) {
+//                    calcWidth = (int) width;
+//                    calcHeight = (int) height;
+//                }
+//            }
+//        }
+//
+//        return new Size(calcWidth, calcHeight);
+//    }
 }

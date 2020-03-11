@@ -34,8 +34,8 @@ class ClassYOLO {
     Net net;
     private int inpWidth = 416;
     private int inpHeight = 416;
-    private float confThreshold = 0.5f;
-    private float nmsThreshold = 0.4f;
+    private float confThreshold = 0.3f;
+    private float nmsThreshold = 0.45f;
     private ArrayList<String> classes = new ArrayList<>();
     String classesFile = "coco.names";
     void init(){
@@ -43,20 +43,23 @@ class ClassYOLO {
         net.setPreferableBackend(Dnn.DNN_BACKEND_OPENCV);
         net.setPreferableTarget(Dnn.DNN_TARGET_CPU);
     }
-    Mat Go(Mat dst){
+    Mat Go(Mat dst,Mat re){
 
         Mat blob = Dnn.blobFromImage(dst, 1 / 255.0, new Size(inpWidth, inpHeight), new Scalar(0, 0, 0), true, false);
+
+
+//        Mat re=dst.clone();
         net.setInput(blob);
         List<Mat> outs = new ArrayList<>();
         end = System.currentTimeMillis();
         net.forward(outs, getOutputsNames(net));
         end2 = System.currentTimeMillis();
-        Outtime();
+//        Outtime();
         start = System.currentTimeMillis();
 //        System.out.println("recNu_MainAAAAAAA="+recNu);
-        postprocess(dst, outs);
+        postprocess(re, outs);
+        return re;
 
-        return dst;
     }
     private void postprocess(Mat frame, List<Mat> outs) {
         List<Integer> classIds = new ArrayList<>();
@@ -113,7 +116,7 @@ class ClassYOLO {
                 if (0 == classIds.get(idx)) {
                     MainActivity.getMainActivity().Advanced_Plate_recognition(box);
                     drawPred(-1, confidences.get(idx), box.x, y, box.x + box.width, box.y, frame);
-                }else{
+                }else if(1 == classIds.get(idx)){
                     MainActivity.getMainActivity().Advanced_Car_recognition(box);
                 }
                 drawPred(classIds.get(idx), confidences.get(idx), box.x, box.y, box.x + box.width, box.y + box.height, frame);

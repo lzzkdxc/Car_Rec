@@ -5,6 +5,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.os.Environment;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import java.io.File;
@@ -37,10 +38,17 @@ public class MyUtils {
         }
         return out;
     }
-    static void showTextView(final TextView tv, final String toString) {
+    static void showTextView(final TextView tv, final String s) {
         activity.runOnUiThread(new Runnable() {
             @Override public void run() {
-                tv.setText(toString);
+                tv.setText(s);
+            }
+        });
+    }
+    static void showBitmap(final ImageView tv, final Bitmap bitmap) {
+        activity.runOnUiThread(new Runnable() {
+            @Override public void run() {
+                tv.setImageBitmap(bitmap);
             }
         });
     }
