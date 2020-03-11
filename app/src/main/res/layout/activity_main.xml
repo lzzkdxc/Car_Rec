@@ -8,7 +8,7 @@
     tools:context=".MainActivity">
 
     <TextView
-        android:id="@+id/text"
+        android:id="@+id/crnn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Hello World!" />
@@ -18,6 +18,11 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="a111!" />
+    <TextView
+        android:id="@+id/type"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="kache" />
     <org.opencv.android.JavaCameraView
         android:id="@+id/yolov3cam"
         android:layout_width="match_parent"

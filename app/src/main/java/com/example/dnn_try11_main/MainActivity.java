@@ -81,6 +81,7 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
     ClassCRNN classCRNN=new ClassCRNN();
     ClassLOGO classLOGO=new ClassLOGO();
     ClassYOLO classYOLO=new ClassYOLO();
+    ClassTYPE classTYPE=new ClassTYPE();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -90,6 +91,12 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
         try {
             String ss = MyUtils.assetFilePath("demo_latest_plate_JIT_CPU.pt");
             classCRNN.module = Module.load(ss);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        try {
+            String ss = MyUtils.assetFilePath("Car_Type_JIT_CPU.pt");
+            classTYPE.module = Module.load(ss);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -119,8 +126,9 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
         show = findViewById(R.id.image);
 //        show.setMaxHeight(show.getMaxWidth());
 
-        classCRNN.textView = findViewById(R.id.text);
+        classCRNN.textView = findViewById(R.id.crnn);
         classLOGO.textView = findViewById(R.id.logo);
+        classTYPE.textView = findViewById(R.id.type);
 
 
 //        getAppDetailSettingIntent(this);
@@ -177,7 +185,7 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
     }
 
 
-    void Advanced_recognition (Rect box){
+    void Advanced_Plate_recognition (Rect box){
         int y = box.y - box.height * 4 < 0 ? 0 : box.y - box.height * 4;
         try {
             int w = dst.width(), h = dst.height();
@@ -186,14 +194,28 @@ public class MainActivity extends AppCompatActivity implements OnTouchListener, 
 //                        Imgcodecs.imwrite("/storage/sdcard/temp.jpg", frame);
             classCRNN.bitmap_plate = Bitmap.createBitmap(bitmap_allcar, box.x, box.y, box.width, box.height);
             classLOGO.bitmap_plate = Bitmap.createBitmap(bitmap_allcar, box.x, y, box.width, box.y - y);
+            classTYPE.bitmap_plate = Bitmap.createBitmap(bitmap_allcar, box.x, box.y, box.width, box.height);
             classCRNN.CRNNgo();
             classLOGO.LOGOgo();
+            classTYPE.TYPEgo();
 
         } catch (CvException e) {
             Log.d("Exception", e.getMessage());
         }
     }
 
+    void Advanced_Car_recognition (Rect box){
+        try {
+            int w = dst.width(), h = dst.height();
+            Bitmap bitmap_allcar = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+            Utils.matToBitmap(dst, bitmap_allcar);
+            classTYPE.bitmap_plate = Bitmap.createBitmap(bitmap_allcar, box.x, box.y, box.width, box.height);
+            classTYPE.TYPEgo();
+
+        } catch (CvException e) {
+            Log.d("Exception", e.getMessage());
+        }
+    }
 //    private void showTextView(final TextView tv, final String toString) {
 //        runOnUiThread(new Runnable() {
 //            @Override public void run() {

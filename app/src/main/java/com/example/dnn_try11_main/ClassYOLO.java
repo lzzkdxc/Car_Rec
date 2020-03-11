@@ -111,8 +111,10 @@ class ClassYOLO {
                 Rect box = boxes.get(idx);
                 int y = box.y - box.height * 4 < 0 ? 0 : box.y - box.height * 4;
                 if (0 == classIds.get(idx)) {
-                    MainActivity.getMainActivity().Advanced_recognition(box);
+                    MainActivity.getMainActivity().Advanced_Plate_recognition(box);
                     drawPred(-1, confidences.get(idx), box.x, y, box.x + box.width, box.y, frame);
+                }else{
+                    MainActivity.getMainActivity().Advanced_Car_recognition(box);
                 }
                 drawPred(classIds.get(idx), confidences.get(idx), box.x, box.y, box.x + box.width, box.y + box.height, frame);
             }
