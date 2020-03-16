@@ -21,10 +21,10 @@ class ClassCRNN {
         assert module != null;
         Tensor outputTensor = module.forward(IValue.from(inputTensor)).toTensor();
         final float[] scores = outputTensor.getDataAsFloatArray();
-        int[] maxx = MyUtils.numMax(scores, 6736);
+        int[] maxx = MyUtils.topK(scores, 6736);
         final String ixs = jiema(maxx);
         String result = MyUtils.quChong(ixs);
-        MyUtils.showTextView(textView,result);
+        MyUtils.showTextView(textView,ixs);
     }
     private String jiema(int[] ixs) {
         StringBuilder out= new StringBuilder();

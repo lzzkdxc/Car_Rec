@@ -21,6 +21,7 @@ class ClassTYPE {
         assert bmp1 != null;
         final Tensor inputTensor = TensorImageUtils.bitmapToFloat32Tensor(bmp1,
                 TensorImageUtils.TORCHVISION_NORM_MEAN_RGB, TensorImageUtils.TORCHVISION_NORM_STD_RGB);
+        final float[] oo = inputTensor.getDataAsFloatArray();
         //            MyUtils.saveBitmap(Environment.getExternalStorageDirectory().getPath()+"logo",bmp1);
         assert module != null;
         Tensor outputTensor = module.forward(IValue.from(inputTensor)).toTensor();
@@ -30,7 +31,7 @@ class ClassTYPE {
         MyUtils.showTextView(textView,MyUtils.TYPEclasses[maxx]);
 //        System.out.println("recNu_LOGOBBBBB="+nownu);
     }
-    int f(float[] a){
+    private int f(float[] a){
         float max=-Float.MAX_VALUE;
         int maxnu=0;
         System.out.println(a[0]+" "+a[1]+" "+a[2]+" "+a[3]+" "+a[4]+" "+a[5]);

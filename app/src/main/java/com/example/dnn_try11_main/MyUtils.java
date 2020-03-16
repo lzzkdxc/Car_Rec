@@ -8,6 +8,7 @@ import android.os.Environment;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -109,6 +110,27 @@ public class MyUtils {
         }
         return ixs;
     }
+    public static int[] topK(float[] a, final int topk) {
+        float values[] = new float[topk];
+        Arrays.fill(values, -Float.MAX_VALUE);
+        int ixs[] = new int[topk];
+        Arrays.fill(ixs, -1);
+
+        for (int i = 0; i < a.length; i++) {
+            for (int j = 0; j < topk; j++) {
+                if (a[i] > values[j]) {
+                    for (int k = topk - 1; k >= j + 1; k--) {
+                        values[k] = values[k - 1];
+                        ixs[k] = ixs[k - 1];
+                    }
+                    values[j] = a[i];
+                    ixs[j] = i;
+                    break;
+                }
+            }
+        }
+        return ixs;
+    }
     static void bitmapToFloatBuffer(
             final Bitmap bitmap,
             final int width,
@@ -144,5 +166,52 @@ public class MyUtils {
 
         return filePic.getAbsolutePath();
     }
+    public byte[] getBytesByBitmap(Bitmap bitmap) {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream(bitmap.getByteCount());
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream);
+        return outputStream.toByteArray();
 
+    }
+    public int[] convertByteToColor(byte[] data){
+        int size = data.length;
+        if (size == 0){
+            return null;
+        }
+
+        int arg = 0;
+        if (size % 3 != 0){
+            arg = 1;
+        }
+
+        int []color = new int[size / 3 + arg];
+        int red, green, blue;
+
+        if (arg == 0){
+            for(int i = 0; i < color.length; ++i){
+                red = convertByteToInt(data[i * 3]);
+                green = convertByteToInt(data[i * 3 + 1]);
+                blue = convertByteToInt(data[i * 3 + 2]);
+
+                color[i] = (red << 16) | (green << 8) | blue | 0xFF000000;
+            }
+        }else{
+            for(int i = 0; i < color.length - 1; ++i){
+                red = convertByteToInt(data[i * 3]);
+                green = convertByteToInt(data[i * 3 + 1]);
+                blue = convertByteToInt(data[i * 3 + 2]);
+                color[i] = (red << 16) | (green << 8) | blue | 0xFF000000;
+            }
+
+            color[color.length - 1] = 0xFF000000;
+        }
+
+        return color;
+    }
+    public static int convertByteToInt(byte data){
+
+        int heightBit = (int) ((data>>4) & 0x0F);
+        int lowBit = (int) (0x0F & data);
+
+        return heightBit * 16 + lowBit;
+    }
 }
