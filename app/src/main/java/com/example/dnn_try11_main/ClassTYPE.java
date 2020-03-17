@@ -20,7 +20,7 @@ class ClassTYPE {
 
         assert bmp1 != null;
         final Tensor inputTensor = TensorImageUtils.bitmapToFloat32Tensor(bmp1,
-                TensorImageUtils.TORCHVISION_NORM_MEAN_RGB, TensorImageUtils.TORCHVISION_NORM_STD_RGB);
+                new float[]{0, 0, 0}, new float[]{1, 1, 1});
         final float[] oo = inputTensor.getDataAsFloatArray();
         //            MyUtils.saveBitmap(Environment.getExternalStorageDirectory().getPath()+"logo",bmp1);
         assert module != null;
